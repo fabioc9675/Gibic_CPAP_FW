@@ -1,0 +1,4 @@
+{
+    "idf.svdFilePath": "${workspaceFolder}/esp32s3.svd",
+    "idf.adapterTargetName": "esp32s3"
+}
