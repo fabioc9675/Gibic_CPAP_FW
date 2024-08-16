@@ -1,4 +1,14 @@
 {
     "idf.svdFilePath": "${workspaceFolder}/esp32s3.svd",
-    "idf.adapterTargetName": "esp32s3"
+    "idf.espIdfPath": "/home/darwin/Documents/esp/v5.3/esp-idf",
+    "idf.adapterTargetName": "esp32s3",
+    "idf.openOcdConfigs": [
+        "board/esp32s3-builtin.cfg"
+    ],
+    "idf.flashType": "JTAG",
+    "files.associations": {
+        "string.h": "c",
+        "sdmmc_cmd.h": "c"
+    },
+    "idf.port": "/dev/ttyACM0"
 }
