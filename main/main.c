@@ -1,89 +1,67 @@
 #include <stdio.h>
-#include <stdio.h>
 #include <string.h>
 #include <sys/unistd.h>
 #include <sys/stat.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "esp_vfs_fat.h"
-#include "sdmmc_cmd.h"
-#include "driver/sdmmc_host.h"
+
+
+#include "uSD/usdDrv.h"
+#include "uSD/usdApp.h"
 
 uint32_t contador = 0;
-char buffer[100];
+//char buffer[100];
 
-void init_sdmmc(void) {
-
-    // Configura los pines para el módulo SDMMC
-    sdmmc_host_t host = SDMMC_HOST_DEFAULT();
-    host.flags = SDMMC_HOST_FLAG_4BIT; // Configura para 4 líneas de datos
-
-    sdmmc_slot_config_t slot = SDMMC_SLOT_CONFIG_DEFAULT();
-    slot.width = 4; // Configura para 4 líneas de datos
-
-    // Configura los pines específicos para el ESP32-S3
-    slot.gpio_cd = SDMMC_SLOT_NO_CD; // No se usa pin de detección de tarjeta
-    slot.gpio_wp = SDMMC_SLOT_NO_WP; // No se usa pin de protección contra escritura
-
-    // Especifica los pines GPIO para las líneas de datos
-    
-    slot.clk = 39;  // Pin para CLK
-    slot.cmd = 40;  // Pin para CMD
-    slot.d0 = 38;    // Pin para D0
-    slot.d1 = 37;    // Pin para D1
-    slot.d2 = 42;   // Pin para D2
-    slot.d3 = 41;   // Pin para D3
-
-    // Monta el sistema de archivos FAT
-    esp_vfs_fat_sdmmc_mount_config_t mount_config = {
-        .format_if_mount_failed = false,
-        .max_files = 5,
-        .allocation_unit_size = 16 * 1024
-    };
-
-    sdmmc_card_t* card;
-    esp_err_t ret = esp_vfs_fat_sdmmc_mount("/sdcard", &host, &slot, &mount_config, &card);
-
-    if (ret != ESP_OK) {
-        if (ret == ESP_FAIL) {
-            printf("Failed to mount filesystem. "
-                   "If you want the card to be formatted, set format_if_mount_failed = true.\n");
-        } else {
-            printf("Failed to initialize the card (%s). "
-                   "Make sure SD card lines have pull-up resistors in place.\n", esp_err_to_name(ret));
-        }
-        return;
-    }
-
-    // Tarjeta inicializada correctamente
-    sdmmc_card_print_info(stdout, card);
-}
 
 void app_main(void)
 {
-    init_sdmmc();
-    printf("tarjeta montada!\n");
+    //init_sdmmc();
+    printf("Run!\n");
+
 
     for(;;)
     {   
-        // Abre un archivo para escribir modo append
-    FILE* f = fopen("/sdcard/hello.txt", "a");
-    if (f == NULL) {
-        printf("Failed to open file for writing\n");
-        return;
+    
+        /*
+            // Abre un archivo para escribir modo append
+        FILE* f = fopen("/sdcard/hello.txt", "a");
+        if (f == NULL) {
+            printf("Failed to open file for writing\n");
+            return;
+        }
+
+        sprintf(buffer, "Contador: %ld\n", contador);
+        // Escribe datos en el archivo
+        fprintf(f, buffer);
+
+        // Cierra el archivo
+        fclose(f);
+
+        printf("File written\n");
+
+
+void app_main(void)
+{
+    gpio_evt_queue = xQueueCreate(25, sizeof(uint32_t));
+    xTaskCreate(app2_gpio, "app_gpio", 4096, NULL, 10, &gpioHandle);
+    //            ssid    pwd_ssid          broker                 puerto    user     pwd
+    mqtt_initVars("ELECTRONICA SID", "electro424", "mqtt://3.90.24.183", 8924);
+    
+    for(;;){
+  
+        MSmqtt();
+        vTaskDelay(1);
+
     }
+}
 
-    sprintf(buffer, "Contador: %ld\n", contador);
-    // Escribe datos en el archivo
-    fprintf(f, buffer);
 
-    // Cierra el archivo
-    fclose(f);
 
-    printf("File written\n");
+        */
 
-    contador++;
+        //sdApp(contador);
+        //contador++;
 
-    vTaskDelay(1000 / portTICK_PERIOD_MS);
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
 }

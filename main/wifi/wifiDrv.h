@@ -1,0 +1,58 @@
+#ifndef WIFI_DRV_H
+#define WIFI_DRV_H
+
+#include <string.h>
+#include "esp_system.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "freertos/event_groups.h"
+#include "esp_wifi.h"
+#include "esp_event.h"
+#include "esp_log.h"
+#include "nvs_flash.h"
+
+#include "lwip/err.h"
+#include "lwip/sys.h"
+
+
+#include "esp_err.h"
+#include "esp_mac.h"
+
+/**
+  * @brief  Disconnect from the currently connected Wi-Fi network.
+  * @return
+  *   - ESP_OK on success
+  */
+esp_err_t wifi_shutdown(void);
+
+/**
+  * @brief  configuracion y conexionWi-Fi network.
+  * @param 
+  *   - wlan: the name of the Wi-Fi network to connect
+  *   - pwd: the password of the Wi-Fi network to connect
+  * @return
+  *   - ESP_OK on success
+  *   - ESP_FAIL en caso de fallo
+  */
+esp_err_t wifi_connect(char *wlan, char *pwd);
+
+/**
+  * @brief  Get the status of the Wi-Fi network.
+  * @return
+  *   - ESP_OK on success
+  *   - ESP_FAIL en caso de fallo
+  */
+esp_err_t wifi_status();
+
+/**
+  * @brief  Get the status of the Wi-Fi network.
+  * @return
+  *   - ESP_OK on success
+  *   - ESP_FAIL en caso de fallo
+  */
+esp_err_t wifi_reconnect(void);
+
+
+
+
+#endif // WIFI_DRV_H
