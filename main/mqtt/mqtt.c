@@ -1,16 +1,10 @@
 /* MQTT (over TCP) Example
-
-   This example code is in the Public Domain (or CC0 licensed, at your option.)
-
-   Unless required by applicable law or agreed to in writing, this
-   software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-   CONDITIONS OF ANY KIND, either express or implied.
 */
 
 
 #include "mqtt.h"
 
-static const char *TAG = "mqtt_example";
+static const char *TAG = "mqtt";
 esp_mqtt_client_handle_t client;
 
 //var maquina de estados
@@ -24,12 +18,9 @@ uint16_t portBroker;
 uint8_t flsendmqtt = 0;
 
 
-//contadores
-uint32_t cntEv1 = 0;
-uint32_t cntEv2 = 0;
-char strcont[10];
-char strcont2[30];
-uint8_t mac[6];
+char topic[30];
+char payload[256];
+uint8_t mac[7];
 
 static void log_error_if_nonzero(const char *message, int error_code)
 {
@@ -57,6 +48,13 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
     switch ((esp_mqtt_event_id_t)event_id) {
     case MQTT_EVENT_CONNECTED:
         ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED");
+        //suscribirse a los topicos de lectura
+        sprintf(topic, "cpap/response/%s", mac);
+        ESP_LOGI(TAG, "%s", topic);
+        msg_id = esp_mqtt_client_subscribe(client, topic, 0);
+        ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
+
+
         break;
    
     case MQTT_EVENT_DISCONNECTED:
@@ -66,8 +64,8 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
 
     case MQTT_EVENT_SUBSCRIBED:
         ESP_LOGI(TAG, "MQTT_EVENT_SUBSCRIBED, msg_id=%d", event->msg_id);
-        msg_id = esp_mqtt_client_publish(client, "/topic/qos0", "data", 0, 0, 0);
-        ESP_LOGI(TAG, "sent publish successful, msg_id=%d", msg_id);
+        //msg_id = esp_mqtt_client_publish(client, "/topic/qos0", "data", 0, 0, 0);
+        //ESP_LOGI(TAG, "sent publish successful, msg_id=%d", msg_id);
         break;
 
     case MQTT_EVENT_UNSUBSCRIBED:
@@ -113,12 +111,14 @@ esp_err_t mqtt_app_start(char *broker, uint32_t port)
         //.credentials.authentication.password = "mqtt",
         .credentials.set_null_client_id = false,
         .credentials.username = "cpap_publisher",
-        .credentials.client_id = "ABC123",
+        //.credentials.client_id = "45D710",
+        .credentials.client_id = (char *)mac, 
         .credentials.authentication.password = "Cp998*-Tx",
     };
     (void *)strcpy((char *)mqtt_cfg.broker.address.uri, (char *)broker);
-
-
+    ESP_LOGI(TAG, "dir broker: %s", mqtt_cfg.broker.address.uri);
+    ESP_LOGI(TAG, "client id: %s", mqtt_cfg.credentials.client_id);
+    
     //esp_mqtt_client_handle_t client = esp_mqtt_client_init(&mqtt_cfg);
     client = esp_mqtt_client_init(&mqtt_cfg);
     /* The last argument may be used to pass data to the event handler, in this example mqtt_event_handler */
@@ -137,7 +137,7 @@ void mqtt_initVars(char *wlan, char *pwd, char *broker, uint32_t port)
 
 void send_mqtt_message(char *topic, char *message)
 {
-    (void)esp_mqtt_client_enqueue(client, topic, message, 0, 1, 0, 1);
+    (void)esp_mqtt_client_enqueue(client, topic, message, 0, 2, 0, 1);
 }
 
 //maquina de estados para gestionar conexion y envio de datos
@@ -146,67 +146,64 @@ void send_mqtt_message(char *topic, char *message)
 
 void MSmqtt(){
     esp_err_t err = ESP_FAIL;
-    uint32_t io_num;
 
-/*
-    if(xQueueReceive(gpio_evt_queue, &io_num, 0)){
-        flsendmqtt = 1;
-        switch (io_num)
-        {
-            case 1:
-                cntEv1++;
-                break;
-            case 2:
-                cntEv2++;
-                break;
-            default:
-                break;
-        }
-        ESP_LOGI(TAG, "recibiendo datos de cola");
-
-    }*/
-
-    switch(mqtt_state){
-
+    switch(mqtt_state)
+    {
         case stConnectWifi:
+            ESP_LOGI(TAG, "stConnectWifi");
             err = wifi_connect (ssid, pwdSsid);
             if(err == ESP_OK){
                 mqtt_state = stConnectMqtt;
+                wifi_get_mac (mac,1);
             }
-            ESP_LOGI(TAG, "stConnectWifi");
             break;
         
         case stReconnectWifi:
             err = wifi_reconnect();
             if(err == ESP_OK){
-                mqtt_state = stSend;
+                mqtt_state = stConnectMqtt;
             }
             break;
 
         case stConnectMqtt:
             err = mqtt_app_start(brokerAddress, portBroker);
             if(err == ESP_OK){
-                mqtt_state = stSend;
+                mqtt_state = stSendInit;
             }//else{
                // mqtt_state = stConnectWifi; 
             //}
             ESP_LOGI(TAG, "stConnectMqtt");
+            flsendmqtt = 1;
             break;
 
-        case stSend:
+        case stSendInit:
             //send_mqtt_message("/topic/p1", "asd");
             if(flsendmqtt == 1){
                 flsendmqtt = 0;
-                esp_read_mac(mac,ESP_MAC_WIFI_STA);
-                
-                sprintf(strcont2, "%02X:%02X:%02X:%02X:%02X:%02X/E1", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-                sprintf(strcont, "%ld",cntEv1);
-                send_mqtt_message(strcont2, strcont);
-                
-                sprintf(strcont2, "%02X:%02X:%02X:%02X:%02X:%02X/E2", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-                sprintf(strcont, "%ld",cntEv2);
-                send_mqtt_message(strcont2, strcont);
+                sprintf(topic, "cpap/init/%s", mac);
+                sprintf(payload, "{'s':'%s'}", mac);
+                //sprintf(strcont2, "%02X:%02X:%02X:%02X:%02X:%02X/E2", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+                //sprintf(strcont, "%ld",cntEv2);
+                send_mqtt_message(topic, payload);
+                ESP_LOGI(TAG, "mensaje enviado");
             }
+
+            //para pruebas
+            flsendmqtt = 1;
+            mqtt_state = stSendRecord;
+            break;
+
+        case stSendRecord:
+            if(flsendmqtt == 1){
+                flsendmqtt = 0;
+                sprintf(topic, "cpap/record/%s", mac);
+                sprintf(payload, "{'s':%s','init':'1','ev':'0','t':'1716322999','var':{'95':'10','tt':'5.3','mx':'12','mn':'9','ia':'2','bf':'13','f%%':'10'}}", mac);
+                //sprintf(strcont2, "%02X:%02X:%02X:%02X:%02X:%02X/E2", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+                //sprintf(strcont, "%ld",cntEv2);
+                send_mqtt_message(topic, payload);
+                ESP_LOGI(TAG, "mensaje enviado");
+            }
+
             break;
 
 

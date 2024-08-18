@@ -8,9 +8,8 @@
 
 #include "uSD/usdDrv.h"
 #include "uSD/usdApp.h"
+#include "mqtt/mqtt.h"
 
-uint32_t contador = 0;
-//char buffer[100];
 
 
 void app_main(void)
@@ -19,48 +18,30 @@ void app_main(void)
     printf("Run!\n");
 
 
+    mqtt_initVars("NATALIA", "1128418683", "mqtt://3.90.24.183", 8924);
+
     for(;;)
     {   
+
+        /* para pruebas de sd descomentar las siguientes lineas
+        */
+        //sdApp(contador);
+        //contador++;
     
-        /*
-            // Abre un archivo para escribir modo append
-        FILE* f = fopen("/sdcard/hello.txt", "a");
-        if (f == NULL) {
-            printf("Failed to open file for writing\n");
-            return;
-        }
 
-        sprintf(buffer, "Contador: %ld\n", contador);
-        // Escribe datos en el archivo
-        fprintf(f, buffer);
+/*
 
-        // Cierra el archivo
-        fclose(f);
-
-        printf("File written\n");
-
-
-void app_main(void)
-{
-    gpio_evt_queue = xQueueCreate(25, sizeof(uint32_t));
-    xTaskCreate(app2_gpio, "app_gpio", 4096, NULL, 10, &gpioHandle);
-    //            ssid    pwd_ssid          broker                 puerto    user     pwd
     mqtt_initVars("ELECTRONICA SID", "electro424", "mqtt://3.90.24.183", 8924);
     
     for(;;){
   
-        MSmqtt();
+        
         vTaskDelay(1);
-
-    }
-}
-
 
 
         */
 
-        //sdApp(contador);
-        //contador++;
+        MSmqtt();
 
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }

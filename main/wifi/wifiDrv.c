@@ -1,20 +1,13 @@
-/* WiFi station Example
-
-   This example code is in the Public Domain (or CC0 licensed, at your option.)
-
-   Unless required by applicable law or agreed to in writing, this
-   software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-   CONDITIONS OF ANY KIND, either express or implied.
-*/
-
 
 #include "wifi/wifiDrv.h"
 
-/* The examples use WiFi configuration that you can set via project configuration menu
+/*
+ *Local functions
+ */
+esp_err_t wifi_init_sta(char *wlan, char *pwd);
+static void event_handler(void* arg, esp_event_base_t event_base,
+                                int32_t event_id, void* event_data);
 
-   If you'd rather not, just change the below entries to strings with
-   the config you want - ie #define EXAMPLE_WIFI_SSID "mywifissid"
-*/
 
 #define MAXIMUM_RETRY  3
 
@@ -164,23 +157,6 @@ esp_err_t wifi_init_sta(char *wlan, char *pwd)
 return ESP_OK;
 }
 
-/*
-funcion que se encarga de conectar el dispositivo a una red wifi
-*/
-esp_err_t wifi_connect(char *wlan, char *pwd)
-{   
-    esp_err_t ret;
-    ret = nvs_flash_init();
-    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-      ESP_ERROR_CHECK(nvs_flash_erase());
-      ret = nvs_flash_init();
-    }
-    
-    ret = wifi_init_sta(wlan, pwd);
-    return ret;
-}
-
-
 /**
   * @brief  Disconnect from the currently connected Wi-Fi network.
   * @return
@@ -203,6 +179,34 @@ esp_err_t wifi_shutdown(void)
     return ESP_OK;
 } 
 
+/**
+  * @brief  configuracion y conexionWi-Fi network.
+  * @param 
+  *   - wlan: the name of the Wi-Fi network to connect
+  *   - pwd: the password of the Wi-Fi network to connect
+  * @return
+  *   - ESP_OK on success
+  *   - ESP_FAIL en caso de fallo
+  */
+esp_err_t wifi_connect(char *wlan, char *pwd)
+{   
+    esp_err_t ret;
+    ret = nvs_flash_init();
+    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+      ESP_ERROR_CHECK(nvs_flash_erase());
+      ret = nvs_flash_init();
+    }
+    
+    ret = wifi_init_sta(wlan, pwd);
+    return ret;
+}
+
+/**
+  * @brief  Get the status of the Wi-Fi network.
+  * @return
+  *   - ESP_OK on success
+  *   - ESP_FAIL en caso de fallo
+  */
 esp_err_t wifi_status(void){
     wifi_ap_record_t ap_info;
     esp_err_t ret = esp_wifi_sta_get_ap_info(&ap_info);
@@ -214,12 +218,47 @@ esp_err_t wifi_status(void){
     return ESP_OK;
 } 
 
+/**
+  * @brief  Get the status of the Wi-Fi network.
+  * @return
+  *   - ESP_OK on success
+  *   - ESP_FAIL en caso de fallo
+  */
 esp_err_t wifi_reconnect(void){
     esp_err_t err;
     err = esp_wifi_connect();
     return err;
 }
 
+/**
+  * @brief  Get the MAC address of the Wi-Fi network.
+  * @param 
+  *   - mac: pointer to the MAC address or serial number
+  *   - type: 1 for MAC address, 17 char
+  *           0 for serial number, 6 char, last 3 bytes
+  */
+void wifi_get_mac(uint8_t *mac, uint8_t type){
+    uint8_t mactmp[6];
+    esp_read_mac(mactmp,ESP_MAC_WIFI_STA);
+    
+    switch (type)
+    {
+    case 0:
+        sprintf((char *)mac, "%02X:%02X:%02X:%02X:%02X:%02X", 
+                mactmp[0], mactmp[1], mactmp[2], mactmp[3], mactmp[4], mactmp[5]);
+        break;
+
+    case 1:
+        sprintf((char *)mac, "%02X%02X%02X", mactmp[3], mactmp[4], mactmp[5]);
+        break;
+    
+    default:
+        sprintf((char *)mac, "000000");
+        break;
+    }   
+    
+                
+}
 /*
 para una desconexion se debe llamar 
 esp_wifi_connect(), para reconectar, el problema es uqe esto se

@@ -44,7 +44,9 @@ typedef enum{
     stConnectWifi,
     stReconnectWifi,
     stConnectMqtt,
-    stSend
+    stSendInit,
+    stSendRecord,
+    stSendEnd
 }msMqtt;
 
 #endif // __MQTT_H__

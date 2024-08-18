@@ -14,7 +14,6 @@
 #include "lwip/err.h"
 #include "lwip/sys.h"
 
-
 #include "esp_err.h"
 #include "esp_mac.h"
 
@@ -51,6 +50,15 @@ esp_err_t wifi_status();
   *   - ESP_FAIL en caso de fallo
   */
 esp_err_t wifi_reconnect(void);
+
+/**
+  * @brief  Get the MAC address of the Wi-Fi network.
+  * @param 
+  *   - mac: pointer to the MAC address or serial number
+  *   - type: 1 for MAC address, 12 char
+  *           0 for serial number, 6 char
+  */
+void wifi_get_mac(uint8_t *mac, uint8_t type);
 
 
 

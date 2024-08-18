@@ -11,7 +11,8 @@
         "sdmmc_cmd.h": "c",
         "usddrv.h": "c",
         "sdmmc_host.h": "c",
-        "freertos.h": "c"
+        "freertos.h": "c",
+        "esp_err.h": "c"
     },
     "idf.port": "/dev/ttyACM0"
 }
