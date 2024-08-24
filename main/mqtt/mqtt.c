@@ -20,7 +20,7 @@ uint8_t flsendmqtt = 0;
 
 char topic[30];
 char payload[256];
-uint8_t mac[7];
+uint8_t mac[7] = {'0','0','0','0','0','4','\0'};
 
 static void log_error_if_nonzero(const char *message, int error_code)
 {
@@ -59,7 +59,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
    
     case MQTT_EVENT_DISCONNECTED:
         ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED");
-        mqtt_state = stReconnectWifi;
+        //mqtt_state = stReconnectWifi;
         break;
 
     case MQTT_EVENT_SUBSCRIBED:
@@ -80,6 +80,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         ESP_LOGI(TAG, "MQTT_EVENT_DATA");
         printf("TOPIC=%.*s\r\n", event->topic_len, event->topic);
         printf("DATA=%.*s\r\n", event->data_len, event->data);
+        flsendmqtt = 1;
         break;
 
     case MQTT_EVENT_ERROR:
@@ -154,7 +155,8 @@ void MSmqtt(){
             err = wifi_connect (ssid, pwdSsid);
             if(err == ESP_OK){
                 mqtt_state = stConnectMqtt;
-                wifi_get_mac (mac,1);
+                //wifi_get_mac (mac,1)
+                //mac = "000004";
             }
             break;
         
@@ -173,7 +175,7 @@ void MSmqtt(){
                // mqtt_state = stConnectWifi; 
             //}
             ESP_LOGI(TAG, "stConnectMqtt");
-            flsendmqtt = 1;
+            //flsendmqtt = 1;
             break;
 
         case stSendInit:
@@ -197,7 +199,7 @@ void MSmqtt(){
             if(flsendmqtt == 1){
                 flsendmqtt = 0;
                 sprintf(topic, "cpap/record/%s", mac);
-                sprintf(payload, "{'s':%s','init':'1','ev':'0','t':'1716322999','var':{'95':'10','tt':'5.3','mx':'12','mn':'9','ia':'2','bf':'13','f%%':'10'}}", mac);
+                sprintf(payload, "{'s':'%s','init':'1','ev':'0','t':'1724272399','var':{'95':'12','tt':'5.5','mx':'15','mn':'8','ia':'3','bf':'12','f%%':'51'}}", mac);
                 //sprintf(strcont2, "%02X:%02X:%02X:%02X:%02X:%02X/E2", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
                 //sprintf(strcont, "%ld",cntEv2);
                 send_mqtt_message(topic, payload);

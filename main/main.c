@@ -18,8 +18,9 @@ void app_main(void)
     printf("Run!\n");
 
 
-    mqtt_initVars("NATALIA", "1128418683", "mqtt://3.90.24.183", 8924);
-
+    //mqtt_initVars("NATALIA", "1128418683", "mqtt://3.90.24.183", 8924);
+    //mqtt_initVars("DAH", "3006658465", "mqtt://3.90.24.183", 8924);
+    mqtt_initVars("ELECTRONICA SID", "electro424", "mqtt://3.90.24.183", 8924);
     for(;;)
     {   
 
