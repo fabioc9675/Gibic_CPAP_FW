@@ -52,5 +52,6 @@ Mkfile.old
 dkms.conf
 
 #config files idf & vscode
-.vscode/
+.vscode/.espidf.peripherals.state.json
+.vscode/settings.json
 build/
