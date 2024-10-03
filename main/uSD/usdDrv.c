@@ -30,7 +30,7 @@ void init_sdmmc(void) {
     };
 
     sdmmc_card_t* card;
-    esp_err_t ret = esp_vfs_fat_sdmmc_mount("/sdcard", &host, &slot, &mount_config, &card);
+    esp_err_t ret = esp_vfs_fat_sdmmc_mount("/sd", &host, &slot, &mount_config, &card);
 
     if (ret != ESP_OK) {
         if (ret == ESP_FAIL) {
