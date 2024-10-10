@@ -21,9 +21,6 @@ void sd_App(void *pvParameters){
 
     // Abre un archivo para escribir modo append
     FILE* f = fopen(file_log, "a");
-    //FILE* f = fopen("/sd/1970-01-01-0000.csv", "a");
-    //FILE* f = fopen("/sd/19700101", "a");
-    //FILE* f = fopen("19700101.csv", "a");
 
     //FILE* f = fopen("/sd/hello2.txt", "a");
     if (f == NULL) {

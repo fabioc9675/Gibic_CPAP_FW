@@ -17,13 +17,15 @@
  
 void app_main(void)
 {
-    init_uart();
-    xTaskCreate(i2c_app, "i2c_app", 4096, NULL, 10, NULL);
     //creamos cola para envio a la sd
-    sd_App_queue = xQueueCreate(10, sizeof(struct Datos_usd));
+    //sd_App_queue = xQueueCreate(10, sizeof(struct Datos_usd));
     i2c_App_queue = xQueueCreate(10, sizeof(struct Datos_I2c));
+   
+    //cramos tareas
+    xTaskCreate(i2c_app, "i2c_app", 4096, NULL, 10, NULL);
     xTaskCreate(bldc_servo_app, "bldc_servo_app", 4096, NULL, 10, NULL);
-    xTaskCreate(sd_App, "sd_App", 4096, (void *)&init_time, 10, NULL);
+    //xTaskCreate(sd_App, "sd_App", 4096, (void *)&init_time, 10, NULL);
+    xTaskCreate(uart_app, "uart_app", 4096, NULL, 10, NULL);
     
 
 
@@ -37,7 +39,7 @@ void app_main(void)
             datos_usd.timestamp = esp_log_timestamp() + init_time;
             datos_usd.bldc = 15;
             datos_usd.presion = datos_i2c.presion;
-            xQueueSend(sd_App_queue, &datos_usd, portMAX_DELAY);
+            //xQueueSend(sd_App_queue, &datos_usd, portMAX_DELAY);
         }
         vTaskDelay(1);
     }
