@@ -10,12 +10,14 @@
 #include "uSD/usdApp.h"
 #include "i2c/i2c_app.h"
 #include "bldc/bldc_servo.h"
+#include "uart/uartapp.h"
 
 //todo: verificar si el timestamp esta en segundos o milisegundos.
 
  
 void app_main(void)
 {
+    init_uart();
     xTaskCreate(i2c_app, "i2c_app", 4096, NULL, 10, NULL);
     //creamos cola para envio a la sd
     sd_App_queue = xQueueCreate(10, sizeof(struct Datos_usd));

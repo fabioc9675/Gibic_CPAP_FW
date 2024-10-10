@@ -63,7 +63,7 @@ void sd_App(void *pvParameters){
                 fprintf(f, buffer);
                 // Cierra el archivo
                 fclose(f);
-                printf(buffer);
+                //printf(buffer);
         }
         //printf(file_log);
         vTaskDelay(50 / portTICK_PERIOD_MS);
