@@ -18,8 +18,33 @@
 #define BUF_SIZE (128)
 //#define RD_BUF_SIZE (BUF_SIZE)
 
+//Definiciones para trabajar con los registros usados en la pantalla
+#define HEADER_LENGTH 2
+#define ACK_LENGTH 6
+#define READING_LENGTH 9
+
+#define BRILLO_REG 0x0082
+#define PRESION_REG 0x1002
+#define TIEMPO_REG 0x1004
+#define HUMEDAD_REG 0x1006
+
+#define FUGAS_REG 0x1001
+#define RUNNING 0x1005
+
+#define PRESION_ACT 0x1003
+
+#define F_TESTING 0
+#define F_HAPPY 1
+#define F_SAD 2
+
 /*funciones*/
 void uart_app(void *pvParameters);
+
+void checkSerialDwin();
+void saveData(uint8_t inByte);
+bool checkSequence();
+bool writeDWIN(unsigned int reg, uint8_t value);
+void initScreen();
 
 #endif // UARTAPP_H
 

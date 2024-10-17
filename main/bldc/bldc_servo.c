@@ -2,10 +2,13 @@
 
 
 #define SERVO_PULSE_GPIO             8        // GPIO connects to the PWM signal line
-#define SERVO_TIMEBASE_RESOLUTION_HZ 1000000  // Timer resolution
-#define SERVO_TIMEBASE_PERIOD        20000    // Timer period   20ms
+#define SERVO_TIMEBASE_RESOLUTION_HZ 40000000  // Timer resolution
+//#define SERVO_TIMEBASE_PERIOD        20000    // Timer period   20ms for servo
+#define SERVO_TIMEBASE_PERIOD        1000    // Timer period 10ms 
 
-uint32_t servo_pulse_width_us = 1000; // Pulse width in microseconds
+uint32_t servo_pulse_width_us = 0; // Pulse width in microseconds
+
+QueueHandle_t bldc_App_queue = NULL;
 
 
 mcpwm_timer_config_t timer_config = {
@@ -83,20 +86,17 @@ void bldc_servo_app(void *pvParameters)
      */
     mcpwm_timer_enable(timer);
     mcpwm_timer_start_stop(timer, MCPWM_TIMER_START_NO_STOP);
-    mcpwm_comparator_set_compare_value(comparator, 1000);    
+    mcpwm_comparator_set_compare_value(comparator, 0);    
 
-    //servo_pulse_width_us = 1050;
+    servo_pulse_width_us = 0;
     for(;;) {
-        
+        while(uxQueueMessagesWaiting(bldc_App_queue) > 0){
+            uint16_t bldc;
+            xQueueReceive(bldc_App_queue, &bldc, portMAX_DELAY);
+            ESP_LOGI("main", "Received bldc value %d", bldc);
+            mcpwm_comparator_set_compare_value(comparator, bldc);
+        }
         
         vTaskDelay(pdMS_TO_TICKS(5000));
-        servo_pulse_width_us += 50;
-        if (servo_pulse_width_us > 1500) {
-            servo_pulse_width_us = 1000;
-        }
-        ESP_LOGI("main", "Setting pulse width to %ld us", servo_pulse_width_us);
-        mcpwm_comparator_set_compare_value(comparator, servo_pulse_width_us);
-
     }
-
 }

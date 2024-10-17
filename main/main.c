@@ -14,22 +14,23 @@
 
 //todo: verificar si el timestamp esta en segundos o milisegundos.
 
- 
+uint16_t bldc_sp = 100;
 void app_main(void)
 {
     //creamos cola para envio a la sd
     //sd_App_queue = xQueueCreate(10, sizeof(struct Datos_usd));
     i2c_App_queue = xQueueCreate(10, sizeof(struct Datos_I2c));
+    bldc_App_queue = xQueueCreate(10, sizeof(uint16_t));
    
     //cramos tareas
-    xTaskCreate(i2c_app, "i2c_app", 4096, NULL, 10, NULL);
+    //xTaskCreate(i2c_app, "i2c_app", 4096, NULL, 10, NULL);
     xTaskCreate(bldc_servo_app, "bldc_servo_app", 4096, NULL, 10, NULL);
     //xTaskCreate(sd_App, "sd_App", 4096, (void *)&init_time, 10, NULL);
     xTaskCreate(uart_app, "uart_app", 4096, NULL, 10, NULL);
     
 
 
-
+    xQueueSend(bldc_App_queue, &bldc_sp, portMAX_DELAY);
     for(;;)
     {   
         while(uxQueueMessagesWaiting(i2c_App_queue) > 0){
