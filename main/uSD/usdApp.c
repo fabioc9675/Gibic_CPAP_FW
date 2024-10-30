@@ -3,7 +3,7 @@
 //handler de la cola de envio a la sd
 QueueHandle_t sd_App_queue = NULL;
 
-char buffer[100];
+char bufferSd[100];
 char file_log[17];
 
 void sd_App(void *pvParameters){
@@ -29,8 +29,8 @@ void sd_App(void *pvParameters){
         ESP_LOGE("SD_APP", "File: %s\n", file_log); 
         return;
     }else{
-        sprintf(buffer, "Timestamp; BLDC %%; Presion mmH2O\n");
-        fprintf(f, buffer);
+        sprintf(bufferSd, "Timestamp; BLDC %%; Presion mmH2O\n");
+        fprintf(f, bufferSd);
         fclose(f);
         ESP_LOGI("SD_APP", "File written\n");    
     }
@@ -55,12 +55,13 @@ void sd_App(void *pvParameters){
                 ESP_LOGE("SD_APP", "File: %s\n", file_log); 
                 return;
             }else{}
-                sprintf(buffer, "%ld; %d; %f\n", datos.timestamp, datos.bldc, datos.presion);
+                sprintf(bufferSd, "%ld; %d; %f\n", datos.timestamp, datos.bldc, datos.presion);
                 // Escribe datos en el archivo
-                fprintf(f, buffer);
+                fprintf(f, bufferSd);
                 // Cierra el archivo
+                //ESP_LOGI("SD_APP", "%s", bufferSd);  
                 fclose(f);
-                //printf(buffer);
+                printf(bufferSd);
         }
         //printf(file_log);
         vTaskDelay(50 / portTICK_PERIOD_MS);

@@ -11,7 +11,6 @@
 
 #include "usdDrv.h"
 
-void sdApp(uint32_t contador);
 
 struct Datos_usd{
     uint32_t timestamp;

@@ -1,6 +1,31 @@
 #include "i2c/i2c_app.h"
 
+i2c_master_bus_handle_t I2C1_bus_handle;
 QueueHandle_t i2c_App_queue = NULL;
+
+// for i2c1
+i2c_master_bus_config_t i2c1_bus_conf = {
+    .clk_source = I2C_CLK_SRC_DEFAULT,
+    .i2c_port = I2C_DEV1,
+    .scl_io_num = SCL1,
+    .sda_io_num = SDA1,
+    .glitch_ignore_cnt = 7,
+    .flags.enable_internal_pullup = 1,
+};
+
+i2c_master_dev_handle_t ds_handle;
+/*
+ *@brief I2C1 master initialization
+ */
+esp_err_t I2C1_init(void)
+{
+    esp_err_t ret;
+    ret = i2c_new_master_bus(&i2c1_bus_conf, &I2C1_bus_handle);
+    //ESP_LOGI(TAG, "init i2c %s", ret == ESP_OK ? "success" : "failed");
+    return ret;
+}
+
+
 /*
  *todo: segmentar la aplicacion en drivers para
     * cada dispositivo i2c
@@ -17,18 +42,9 @@ QueueHandle_t i2c_App_queue = NULL;
     * 9. goto 4
  */
 
-
 uint16_t adc=0;
+float offsetPresion = 0;
 time_t init_time=0;
-
-
-//void i2c_app_read(void)
-//{
-   // (void)i2c_ds1338_read();
-   // (void)i2c_adc1015_get_ch(1, &adc);
-   // ESP_LOGI("APP_READ", "ADC1015 read data: %d", adc);
-//}
-
 
 void i2c_app(void *pvParameters)
 {
@@ -40,22 +56,31 @@ void i2c_app(void *pvParameters)
     //init and read rtc
     (void)i2c_ds1338_init();
     (void)i2c_ds1338_read(&init_time);
+
     
     //init adc
     (void)i2c_adc1015_init();
+
+    //leemos offset presion
+    (void)i2c_adc1015_get_ch(3, &adc);
+    ret = i2c_adc1015_read_ch(&adc);
+    while (ret != ESP_OK) {
+        ret = i2c_adc1015_read_ch(&adc);    
+    }
+    offsetPresion = (float)(((adc)/(0.2*3000))-1);
     
-    while (1) {
-        
+    for(;;) 
+    {
         (void)i2c_adc1015_get_ch(3, &adc);
         ret = i2c_adc1015_read_ch(&adc);
         while (ret != ESP_OK) {
             ret = i2c_adc1015_read_ch(&adc);    
             //ESP_LOGI("APP_READ", "In while");
         }
-        //ESP_LOGI("APP_READ", "ADC1015 read data: %dmV", adc);
-        datos.presion = (((float)adc/1000)-(float)0.6)/(float)0.006;
-        xQueueSend(i2c_App_queue, &datos, portMAX_DELAY);
-        //ESP_LOGI("APP_READ", "presion: %f mmH2O", presion);
+        datos.presion = ((adc)/(0.2*3000))-1;
+        datos.presion -= offsetPresion;
+        datos.presion *= 10;
+        xQueueSend(i2c_App_queue, &datos, 0);
         vTaskDelay(50 / portTICK_PERIOD_MS);
     }
     /*
@@ -76,34 +101,10 @@ void i2c_app(void *pvParameters)
     ret = i2c_new_master_bus(&i2c1_bus_conf, &i2c1_bus_h);
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "I2C1 master bus create error");
+      device init error");
         return;
     }
-    ret = i2c_new_master_bus(&i2c2_bus_conf, &i2c2_bus_h);
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "I2C2 master bus create error");
-        return;
-    }
-    ret = i2c_ds1338_init(i2c1_bus_h, &ds1338_config, &ds1338_dev);
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "DS1338 device init error");
-        return;
-    }
-    ret = i2c_ds1338_read(ds1338_dev, 0, ds1338Buf, 8);
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "DS1338 read error");
-        return;
-    }
-    for (int i = 0; i < 8; i++) {
-        ESP_LOGI(TAG, "DS1338 read data[%d]: %02x", i, ds1338Buf[i]);
-    }
-    ret = i2c_ds1338_write(ds1338_dev, 0, ds1338Buf, 8);
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "DS1338 write error");
-        return;
-    }
-    ret = i2c_ds1338_read(ds1338_dev, 0, ds1338Buf, 8);
-    if (ret != ESP_OK) {
-        ESP_LOGE
+   
 
 */
 }

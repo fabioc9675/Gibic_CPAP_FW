@@ -18,6 +18,9 @@
 #define BUF_SIZE (128)
 //#define RD_BUF_SIZE (BUF_SIZE)
 
+
+extern QueueHandle_t uart_app_queue; 
+
 //Definiciones para trabajar con los registros usados en la pantalla
 #define HEADER_LENGTH 2
 #define ACK_LENGTH 6

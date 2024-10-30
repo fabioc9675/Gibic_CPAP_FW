@@ -97,6 +97,6 @@ void bldc_servo_app(void *pvParameters)
             mcpwm_comparator_set_compare_value(comparator, bldc);
         }
         
-        vTaskDelay(pdMS_TO_TICKS(5000));
+        vTaskDelay(10 / portTICK_PERIOD_MS);
     }
 }

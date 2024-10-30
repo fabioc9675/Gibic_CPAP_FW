@@ -15,6 +15,8 @@ static const char *TAG = "uart_events";
 #define uart_num 1
 
 static QueueHandle_t uart1_queue;
+QueueHandle_t uart_app_queue = NULL;
+
 
 uint8_t dataToWrite[8] = {0x5A, 0XA5, 0X05, 0X82, 0x00, 0x00, 0x00, 0x00}; // Secuencia a escribir los 4 ultimos se llenan de acuerdo al registro y valor a escribir
 
@@ -54,7 +56,7 @@ void uart_app(void *pvParameters)
     tiempo = 15;
     humedad = 4;
     ESP_LOGI(TAG, "Serial iniciado!");
-    initScreen();
+    //initScreen();
 
     for (;;)
     {
@@ -66,20 +68,47 @@ void uart_app(void *pvParameters)
 // Rutina que esta verificando si se ha recibido una secuencia de la pantalla
 void checkSerialDwin()
 {
+
     int len = 0;
-    uint8_t inByte;
+    //uint8_t inByte; //vallejo
+    uint8_t inBytes[10];
+    uint8_t temp=0;
 
     uart_get_buffered_data_len(uart_num, (size_t *)&len);
     if (len > 0)
+    /*
     {
+       
         // Provisional: para implementar similar como en Arduino se lee un solo byte
         uart_read_bytes(uart_num, &inByte, 1, 1);
+         ESP_LOGI(TAG, "Secuencia recibida: %02x, %c", inByte, inByte);
         //ESP_LOGI(TAG, "Read %d bytes: '%02x'", len, inByte);
         // len = uart_read_bytes(uart_num, datarx, len, 10 / portTICK_PERIOD_MS);
         // ESP_LOGI(TAG, "Read %d bytes: '%s'", len, datarx);
         saveData(inByte);
     }
-    vTaskDelay(50 / portTICK_PERIOD_MS);
+    */
+    {
+        uart_read_bytes(uart_num, &inBytes, len, 1);
+        ESP_LOGI(TAG, "Read %d bytes: %s", len, inBytes);
+        //ESP_LOGI(TAG, "Read %d bytes: '%02x', '%02x', '%02x', '%02x', '%02x', '%02x'", len, inBytes[0], 
+        //        inBytes[1], inBytes[2], inBytes[3], inBytes[4], inBytes[5]);
+        switch(inBytes[0]){
+            case 'P':
+                temp=(inBytes[3]&0x0F)*10;
+                temp+=inBytes[4]&0x0F;
+                ESP_LOGI(TAG, "presion = %d", temp);
+                xQueueSend(uart_app_queue, &temp, 0);
+                break;
+            case 'T':
+                //saveData(inBytes[1]);
+                break;
+            default:
+                break;
+        }
+
+    }
+    vTaskDelay(5);
 }
 
 // Metodo para almacenar y procesar la secuencia recibida
@@ -111,6 +140,7 @@ void saveData(uint8_t inByte)
 // escritura con informacion de un registro
 bool checkSequence()
 {
+    ESP_LOGI(TAG, "Secuencia recibida: %02x", buffer[3]);
     if (buffer[3] == 0x82)
     { // Secuencia despues de escribir
         for (int i = 0; i < ACK_LENGTH; i++)
