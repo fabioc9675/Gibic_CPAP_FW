@@ -21,6 +21,11 @@
 
 extern QueueHandle_t uart_app_queue; 
 
+struct uartDataIn{
+    uint8_t command;
+    uint8_t value;
+};
+
 //Definiciones para trabajar con los registros usados en la pantalla
 #define HEADER_LENGTH 2
 #define ACK_LENGTH 6

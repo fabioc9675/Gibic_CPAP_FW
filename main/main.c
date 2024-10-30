@@ -15,26 +15,35 @@
 //todo: verificar si el timestamp esta en segundos o milisegundos.
 
 uint16_t bldc_sp = 100;
+uint8_t flag_bldc = 0;
+uint8_t spbldctemp = 0;
+
+TaskHandle_t bldcTaskHandle = NULL; // Identificador para la tarea i2c_app
 void app_main(void)
 {
     
     struct Datos_usd datos_usd;
+    struct uartDataIn uatdatain;
+    {
+        /* data */
+    };
+    
 
     //creamos cola para envio a la sd
     sd_App_queue = xQueueCreate(10, sizeof(struct Datos_usd));
     i2c_App_queue = xQueueCreate(10, sizeof(struct Datos_I2c));
     bldc_App_queue = xQueueCreate(10, sizeof(uint16_t));
-    uart_app_queue = xQueueCreate(10, sizeof(uint8_t));
+    uart_app_queue = xQueueCreate(10, sizeof(uatdatain));
    
     //cramos tareas
     xTaskCreate(i2c_app, "i2c_app", 4096, NULL, 10, NULL);
-    xTaskCreate(bldc_servo_app, "bldc_servo_app", 4096, NULL, 10, NULL);
+    //xTaskCreate(bldc_servo_app, "bldc_servo_app", 4096, NULL, 10, &bldcTaskHandle);
     xTaskCreate(sd_App, "sd_App", 4096, (void *)&init_time, 10, NULL);
     xTaskCreate(uart_app, "uart_app", 4096, NULL, 10, NULL);
     
 
 
-    xQueueSend(bldc_App_queue, &bldc_sp, 0);
+    //xQueueSend(bldc_App_queue, &bldc_sp, 0);
     init_time *= 1000;
     for(;;)
     {   
@@ -50,12 +59,48 @@ void app_main(void)
         }
 
         while(uxQueueMessagesWaiting(uart_app_queue) > 0){
-            uint8_t inByte;
-            xQueueReceive(uart_app_queue, &inByte, 0);
-            //escalamos la presion
-            datos_usd.bldc = inByte;
-            bldc_sp = (inByte-3)* 55;
-            xQueueSend(bldc_App_queue, &bldc_sp, 0);
+            struct uartDataIn datos;
+            
+            xQueueReceive(uart_app_queue, &datos, 0);
+            
+            switch (datos.command)
+            {
+            case 'P':
+                //escalamos la presion
+                bldc_sp = (datos.value-3)* 55;
+                spbldctemp = datos.value;
+                if (flag_bldc){
+                    datos_usd.bldc = datos.value;
+                    xQueueSend(bldc_App_queue, &bldc_sp, 0);
+
+                }else{
+                    datos_usd.bldc = 0;
+                    
+                }
+                break;
+
+            case 'S':
+                if(datos.value){
+                    flag_bldc = 1;
+                    xTaskCreate(bldc_servo_app, "bldc_servo_app", 4096, NULL, 10, &bldcTaskHandle);
+                    xQueueSend(bldc_App_queue, &bldc_sp, 0);
+                    datos_usd.bldc = spbldctemp;
+                }else{
+                    flag_bldc = 0;
+                    vTaskDelete(bldcTaskHandle);
+                    datos_usd.bldc = 0;
+                }   
+                break;
+
+            default:
+                break;
+            }
+            
+            
+
+ 
+
+            
             
         }
         vTaskDelay(1);

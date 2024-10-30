@@ -68,7 +68,7 @@ void uart_app(void *pvParameters)
 // Rutina que esta verificando si se ha recibido una secuencia de la pantalla
 void checkSerialDwin()
 {
-
+    struct uartDataIn datos;
     int len = 0;
     //uint8_t inByte; //vallejo
     uint8_t inBytes[10];
@@ -98,14 +98,22 @@ void checkSerialDwin()
                 temp=(inBytes[3]&0x0F)*10;
                 temp+=inBytes[4]&0x0F;
                 ESP_LOGI(TAG, "presion = %d", temp);
-                xQueueSend(uart_app_queue, &temp, 0);
+                datos.command='P';
+                datos.value=temp;
+                
                 break;
-            case 'T':
+            case 'S':
+                datos.command='P';
+                temp=(inBytes[3]&0x0F)*10;
+                temp+=inBytes[4]&0x0F;
+                datos.value=temp;
+
                 //saveData(inBytes[1]);
                 break;
             default:
                 break;
         }
+        xQueueSend(uart_app_queue, &datos, 0);
 
     }
     vTaskDelay(5);
