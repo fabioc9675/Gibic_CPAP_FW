@@ -62,10 +62,13 @@ void app_main(void)
             struct uartDataIn datos;
             
             xQueueReceive(uart_app_queue, &datos, 0);
-            
+            printf("command: %c\n", datos.command);
+            printf("value: %d\n", datos.value);
+
             switch (datos.command)
             {
             case 'P':
+                printf("en case p con command: %c y data: %d\n", datos.command, datos.value);
                 //escalamos la presion
                 spbldctemp = datos.value;
                 //printf("spbldctemp: %d\n", spbldctemp);
@@ -80,19 +83,17 @@ void app_main(void)
                 break;
 
             case 'S':
-
-                //printf("spbldctemp: %d\n", spbldctemp);
-                //printf("valor dattos: %d\n", datos.value);
                 if(datos.value==1){
+                    
                     flag_bldc = 1;
-                    //xTaskCreate(bldc_servo_app, "bldc_servo_app", 4096, NULL, 10, &bldcTaskHandle);
-                    //printf("creando tarea\n");
-                    xTaskCreate(bldc_servo_app, "bldc_servo_app", 4096, NULL, 10, NULL);
                     bldc_sp = (spbldctemp-3)* 55;
                     //printf("bldc_sp: %d\n", bldc_sp);
+                    xQueueReset(bldc_App_queue);
                     xQueueSend(bldc_App_queue, &bldc_sp, 0);
                     datos_usd.bldc = spbldctemp;
-                }else{
+                    xTaskCreate(bldc_servo_app, "bldc_servo_app", 4096, NULL, 10, NULL);
+                }else if(datos.value==0){
+                   
                     flag_bldc = 0;
                     //vTaskDelete(bldcTaskHandle);
                     bldc_sp = 0xFFFE;

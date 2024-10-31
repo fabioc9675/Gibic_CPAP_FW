@@ -25,7 +25,9 @@ uint8_t writeSuccessful[ACK_LENGTH] = {0x5A, 0xA5, 0x03, 0x82, 0x4F, 0x4B};
 uint8_t buffer[READING_LENGTH];
 
 int brillo, presion, presionAct, tiempo, humedad = 0;
-bool fugas, running = 0;
+//bool fugas, running = 0;
+bool fugas = 0;
+uint8_t running  = 0;
 int seqLength = READING_LENGTH;
 
 void uart_app(void *pvParameters)
@@ -70,25 +72,25 @@ void checkSerialDwin()
 {
     struct uartDataIn datos;
     int len = 0;
-    //uint8_t inByte; //vallejo
-    uint8_t inBytes[10];
+    uint8_t inByte; //vallejo
+    //uint8_t inBytes[10];
     uint8_t temp=0;
 
     uart_get_buffered_data_len(uart_num, (size_t *)&len);
     if (len > 0)
-    /*
+    
     {
        
         // Provisional: para implementar similar como en Arduino se lee un solo byte
         uart_read_bytes(uart_num, &inByte, 1, 1);
-         ESP_LOGI(TAG, "Secuencia recibida: %02x, %c", inByte, inByte);
+        // ESP_LOGI(TAG, "Secuencia recibida: %02x, %c", inByte, inByte);
         //ESP_LOGI(TAG, "Read %d bytes: '%02x'", len, inByte);
         // len = uart_read_bytes(uart_num, datarx, len, 10 / portTICK_PERIOD_MS);
         // ESP_LOGI(TAG, "Read %d bytes: '%s'", len, datarx);
         saveData(inByte);
     }
-    */
-    {
+    
+    /*{
         uart_read_bytes(uart_num, &inBytes, len, 1);
         ESP_LOGI(TAG, "Read %d bytes: %s", len, inBytes);
         //ESP_LOGI(TAG, "Read %d bytes: '%02x', '%02x', '%02x', '%02x', '%02x', '%02x'", len, inBytes[0], 
@@ -115,13 +117,14 @@ void checkSerialDwin()
         }
         xQueueSend(uart_app_queue, &datos, 0);
 
-    }
+    }*/
     vTaskDelay(5);
 }
 
 // Metodo para almacenar y procesar la secuencia recibida
 void saveData(uint8_t inByte)
 {
+    struct uartDataIn datos;
     // Desplazar los elementos del buffer hacia la izquierda
     for (int i = 0; i < seqLength - 1; i++)
     {
@@ -137,8 +140,16 @@ void saveData(uint8_t inByte)
         // Si coincide el encabezado, comprobar el resto de la secuencia
         if (checkSequence())
         {
-            ESP_LOGI(TAG, "Comunicacion confirmada!");
+            //ESP_LOGI(TAG, "Comunicacion confirmada!");
             ESP_LOGI(TAG, "Brillo: %d, presion: %d, tiempo: %d, humedad: %d, fugas: %d, running: %d", brillo, presion, tiempo, humedad, fugas, running);
+
+            datos.command = 'P';
+            datos.value = presion;
+            xQueueSend(uart_app_queue, &datos, 0);
+
+            datos.command = 'S';
+            datos.value = running;
+            xQueueSend(uart_app_queue, &datos, 0);
         }
     }
 }
