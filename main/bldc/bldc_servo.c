@@ -91,12 +91,19 @@ void bldc_servo_app(void *pvParameters)
     servo_pulse_width_us = 0;
     for(;;) {
         while(uxQueueMessagesWaiting(bldc_App_queue) > 0){
-            uint16_t bldc;
+            uint16_t bldc = 0;
             xQueueReceive(bldc_App_queue, &bldc, portMAX_DELAY);
-            ESP_LOGI("main", "Received bldc value %d", bldc);
-            mcpwm_comparator_set_compare_value(comparator, bldc);
+            //ESP_LOGI("main", "Received bldc value %d", bldc);
+            if(bldc == 0xFFFE){
+                mcpwm_comparator_set_compare_value(comparator, 0);
+                //@todo:apagar el timer antes de matar la tarea
+
+                vTaskDelete(NULL);
+            }else{
+                mcpwm_comparator_set_compare_value(comparator, bldc);
+            }
         }
-        
+        //printf("bldc_servo_app\n");
         vTaskDelay(10 / portTICK_PERIOD_MS);
     }
 }

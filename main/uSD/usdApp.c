@@ -59,9 +59,9 @@ void sd_App(void *pvParameters){
                 // Escribe datos en el archivo
                 fprintf(f, bufferSd);
                 // Cierra el archivo
-                //ESP_LOGI("SD_APP", "%s", bufferSd);  
+                ESP_LOGI("SD_APP", "%s", bufferSd);  
                 fclose(f);
-                printf(bufferSd);
+                
         }
         //printf(file_log);
         vTaskDelay(50 / portTICK_PERIOD_MS);

@@ -18,12 +18,14 @@ uint16_t bldc_sp = 100;
 uint8_t flag_bldc = 0;
 uint8_t spbldctemp = 0;
 
-TaskHandle_t bldcTaskHandle = NULL; // Identificador para la tarea i2c_app
+//TaskHandle_t bldcTaskHandle = NULL; // Identificador para la tarea i2c_app
 void app_main(void)
 {
     
     struct Datos_usd datos_usd;
     struct uartDataIn uatdatain;
+
+    datos_usd.bldc = 0;
     {
         /* data */
     };
@@ -52,8 +54,6 @@ void app_main(void)
             struct Datos_I2c datos_i2c;
             xQueueReceive(i2c_App_queue, &datos_i2c, 0);
             datos_usd.timestamp = esp_log_timestamp() + init_time;
-            //datos_usd.bldc = 15;
-            
             datos_usd.presion = datos_i2c.presion;
             xQueueSend(sd_App_queue, &datos_usd, 0);
         }
@@ -67,28 +67,38 @@ void app_main(void)
             {
             case 'P':
                 //escalamos la presion
-                bldc_sp = (datos.value-3)* 55;
                 spbldctemp = datos.value;
+                //printf("spbldctemp: %d\n", spbldctemp);
+                bldc_sp = (spbldctemp-3)* 55;
                 if (flag_bldc){
                     datos_usd.bldc = datos.value;
                     xQueueSend(bldc_App_queue, &bldc_sp, 0);
 
                 }else{
                     datos_usd.bldc = 0;
-                    
                 }
                 break;
 
             case 'S':
-                if(datos.value){
+
+                //printf("spbldctemp: %d\n", spbldctemp);
+                //printf("valor dattos: %d\n", datos.value);
+                if(datos.value==1){
                     flag_bldc = 1;
-                    xTaskCreate(bldc_servo_app, "bldc_servo_app", 4096, NULL, 10, &bldcTaskHandle);
+                    //xTaskCreate(bldc_servo_app, "bldc_servo_app", 4096, NULL, 10, &bldcTaskHandle);
+                    //printf("creando tarea\n");
+                    xTaskCreate(bldc_servo_app, "bldc_servo_app", 4096, NULL, 10, NULL);
+                    bldc_sp = (spbldctemp-3)* 55;
+                    //printf("bldc_sp: %d\n", bldc_sp);
                     xQueueSend(bldc_App_queue, &bldc_sp, 0);
                     datos_usd.bldc = spbldctemp;
                 }else{
                     flag_bldc = 0;
-                    vTaskDelete(bldcTaskHandle);
+                    //vTaskDelete(bldcTaskHandle);
+                    bldc_sp = 0xFFFE;
+                    xQueueSend(bldc_App_queue, &bldc_sp, 0);
                     datos_usd.bldc = 0;
+                    bldc_sp = 0;
                 }   
                 break;
 

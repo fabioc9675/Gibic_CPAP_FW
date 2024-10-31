@@ -103,7 +103,7 @@ void checkSerialDwin()
                 
                 break;
             case 'S':
-                datos.command='P';
+                datos.command='S';
                 temp=(inBytes[3]&0x0F)*10;
                 temp+=inBytes[4]&0x0F;
                 datos.value=temp;
