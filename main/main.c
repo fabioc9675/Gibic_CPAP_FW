@@ -40,7 +40,7 @@ void app_main(void)
     //cramos tareas
     xTaskCreate(i2c_app, "i2c_app", 4096, NULL, 10, NULL);
     //xTaskCreate(bldc_servo_app, "bldc_servo_app", 4096, NULL, 10, &bldcTaskHandle);
-    xTaskCreate(sd_App, "sd_App", 4096, (void *)&init_time, 10, NULL);
+    //xTaskCreate(sd_App, "sd_App", 4096, (void *)&init_time, 10, NULL);
     xTaskCreate(uart_app, "uart_app", 4096, NULL, 10, NULL);
     
 
@@ -55,6 +55,7 @@ void app_main(void)
             xQueueReceive(i2c_App_queue, &datos_i2c, 0);
             datos_usd.timestamp = esp_log_timestamp() + init_time;
             datos_usd.presion = datos_i2c.presion;
+            datos_usd.flujo = datos_i2c.flujo;
             xQueueSend(sd_App_queue, &datos_usd, 0);
         }
 

@@ -9,6 +9,7 @@ extern time_t init_time;
 
 struct Datos_I2c{
     float presion;
+    float flujo;
 };
 
 
@@ -18,8 +19,9 @@ void i2c_app_read(void);
 typedef enum {
     st_init,
     st_reqAdc0,
-    
-    st_rAdc0
+    st_rsdp810,
+    st_rAdc0,
+    st_iddle
 } i2c_stetes_t;
 
 

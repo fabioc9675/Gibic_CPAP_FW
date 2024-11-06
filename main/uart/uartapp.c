@@ -70,11 +70,11 @@ void uart_app(void *pvParameters)
 // Rutina que esta verificando si se ha recibido una secuencia de la pantalla
 void checkSerialDwin()
 {
-    struct uartDataIn datos;
+    //struct uartDataIn datos;
     int len = 0;
     uint8_t inByte; //vallejo
     //uint8_t inBytes[10];
-    uint8_t temp=0;
+    //uint8_t temp=0;
 
     uart_get_buffered_data_len(uart_num, (size_t *)&len);
     if (len > 0)

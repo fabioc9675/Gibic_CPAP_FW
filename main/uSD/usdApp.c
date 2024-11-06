@@ -29,7 +29,7 @@ void sd_App(void *pvParameters){
         ESP_LOGE("SD_APP", "File: %s\n", file_log); 
         return;
     }else{
-        sprintf(bufferSd, "Timestamp; BLDC %%; Presion mmH2O\n");
+        sprintf(bufferSd, "Timestamp; BLDC %%; Presion mmH2O; Flujo\n");
         fprintf(f, bufferSd);
         fclose(f);
         ESP_LOGI("SD_APP", "File written\n");    
@@ -55,7 +55,11 @@ void sd_App(void *pvParameters){
                 ESP_LOGE("SD_APP", "File: %s\n", file_log); 
                 return;
             }else{}
-                sprintf(bufferSd, "%ld; %d; %f\n", datos.timestamp, datos.bldc, datos.presion);
+                sprintf(bufferSd, "%ld; %d; %f; %f \n", 
+                                                   datos.timestamp, 
+                                                   datos.bldc,
+                                                   datos.presion,
+                                                   datos.flujo);
                 // Escribe datos en el archivo
                 fprintf(f, bufferSd);
                 // Cierra el archivo

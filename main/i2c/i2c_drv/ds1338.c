@@ -1,7 +1,9 @@
 #include "i2c/i2c_drv/i2c_common.h"
 #include <time.h>
 
+#ifdef DEBUG
 static const char TAG[] = "ds1338";
+#endif
 
 uint8_t dds1338Buf[7]={0};
 
@@ -19,7 +21,9 @@ i2c_ds1338_config_t ds1338_conf = {
 esp_err_t i2c_ds1338_init(){
     esp_err_t ret;
     ret = i2c_master_bus_add_device(I2C1_bus_handle, &ds1338_conf.conf, &ds1338_conf.handle);
+    #ifdef DEBUG
     ESP_LOGI(TAG, "init ds1338 %s", ret == ESP_OK ? "success" : "failed");
+    #endif
     return ret;
 }
 
@@ -30,9 +34,11 @@ esp_err_t i2c_ds1338_read(time_t *time){
     ret = i2c_master_transmit_receive( ds1338_conf.handle, 
                                        &ds1338_conf.addr,ds1338_conf.dl_addr,
                                        ds1338_conf.buff, ds1338_conf.dl_r, -1);
+    #ifdef DEBUG
     ESP_LOGI(TAG, "DS1338 read data: %02x,%02X,%02X,%02X,%02X,%02X,%02X", 
             dds1338Buf[0],dds1338Buf[1],dds1338Buf[2],dds1338Buf[3],
             dds1338Buf[4],dds1338Buf[5],dds1338Buf[6]);
+    #endif
 
     uint8_t seconds = ((((dds1338Buf[0] >> 4) & 0x07) * 10) + (dds1338Buf[0] & 0x0F));
     uint8_t minutes = ((((dds1338Buf[1] >> 4) & 0x07) * 10) + (dds1338Buf[1] & 0x0F));
