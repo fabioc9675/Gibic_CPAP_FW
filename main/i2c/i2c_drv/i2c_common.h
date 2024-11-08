@@ -66,15 +66,11 @@ typedef struct {
 } i2c_ds1338_config_t;
 
 /**
- * function for DS1338
- */
-
-/**
  * @brief Init an ds1338.
  * @param None
  * @return ESP_OK: Init success. ESP_FAIL: Not success.
  */
-esp_err_t i2c_ds1338_init();
+esp_err_t i2c_ds1338_init(void);
 
 /**
  * @brief Read time from DS1338
@@ -111,7 +107,7 @@ typedef struct {
  * @param None
  * @return ESP_OK: Init success. ESP_FAIL: Not success.
  */
-esp_err_t i2c_adc1015_init();
+esp_err_t i2c_adc1015_init(void);
 
 /**
  * @brief Get data from ADS1015
@@ -142,7 +138,7 @@ typedef struct {
     i2c_device_config_t conf;         /*!< conf device for eeprom device */
     i2c_master_dev_handle_t handle;   /*!< I2C device handle */
     uint8_t *buff;                    /*!< buffer for r/w */
-    uint8_t wt_ms;                    /*!< timeout for r/w */
+    int8_t wt_ms;                    /*!< timeout for r/w */
 } i2c_sdp810_config_t;
 
 /**

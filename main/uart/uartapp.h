@@ -20,9 +20,22 @@
 
 
 extern QueueHandle_t uart_app_queue; 
+extern QueueHandle_t uart_app_queue_rx;
+
+
+typedef enum{
+    UPresion,
+    SPage
+}command_t;
+
 
 struct uartDataIn{
     uint8_t command;
+    uint8_t value;
+};
+
+struct ToUartData{
+    command_t command;
     uint8_t value;
 };
 
@@ -40,6 +53,8 @@ struct uartDataIn{
 #define RUNNING 0x1005
 
 #define PRESION_ACT 0x1003
+
+#define PAGINA_ACT 0x0084
 
 #define F_TESTING 0
 #define F_HAPPY 1

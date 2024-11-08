@@ -1,6 +1,7 @@
 #include "i2c/i2c_drv/i2c_common.h"
+#include "math.h"
 
-#define DEBUG
+//#define DEBUG
 
 // Sensor Commands
 typedef enum{
@@ -29,6 +30,7 @@ typedef enum{
 static const float scaleFactorTemperature = 200;
 
 uint8_t sdp810Buf[9]={0};
+i2c_master_status_t status;
 
 i2c_sdp810_config_t sdp810_conf ={
     .conf.scl_speed_hz = I2C_FREQ_HZ,
@@ -36,7 +38,7 @@ i2c_sdp810_config_t sdp810_conf ={
     .conf.dev_addr_length = I2C_ADDR_BIT_LEN_7,
     //.conf.flags.disable_ack_check = 1,
     .buff=sdp810Buf,
-    .wt_ms = 1,
+    .wt_ms = -1,
 };
 
 /**
@@ -45,16 +47,31 @@ i2c_sdp810_config_t sdp810_conf ={
 esp_err_t xReadMeasurementRawResults(int16_t *diffPressureTicks,
                                      int16_t *temperatureTicks,
                                      uint16_t *scaleFactor);
-esp_err_t xExecuteCommand(Command cmd);
 esp_err_t xCheckCrc(uint8_t *data, uint8_t size, uint8_t checksum);
-
 
 /**
  * @brief Init Sdp810
  */
-esp_err_t xSdp810Init(){
-    esp_err_t ret;
-    ret = i2c_master_bus_add_device(I2C1_bus_handle, &sdp810_conf.conf, &sdp810_conf.handle);
+esp_err_t xSdp810Init(void){
+    esp_err_t ret = ESP_OK;
+    ret = i2c_master_bus_add_device(I2C1_bus_handle, &sdp810_conf.conf, 
+                                    &sdp810_conf.handle);
+
+    #ifdef DEBUG
+        printf("init sdp810 %s\n", ret == ESP_OK ? "success" : "failed");
+    #endif
+
+    Command command = COMMAND_STOP_CONTINOUS_MEASUREMENT;
+    #ifdef DEBUG
+        printf("execute command: %04x\n",command);
+    #endif
+    sdp810Buf[0] = command >> 8;
+    sdp810Buf[1] = command & 0xFF;
+    ret = i2c_master_transmit(sdp810_conf.handle, 
+                              sdp810_conf.buff,2, -1);
+    #ifdef DEBUG
+        printf("stop command: %s\n", ret == ESP_OK ? "success" : "failed");
+    #endif
     return ret;
 }
 
@@ -63,31 +80,30 @@ esp_err_t xSdp810Init(){
  */
 esp_err_t xSdp810_StartContinousMeasurement(Sdp800TempComp tempComp,
                                             Sdp800Averaging averaging){
-
     esp_err_t ret;
     Command command = COMMAND_UNDEFINED;
     
     #ifdef DEBUG
-    printf("tempcomp: %d\n",tempComp);
-    printf("averaging: %d\n",averaging);
+        printf("tempcomp: %d\n",tempComp);
+        printf("averaging: %d\n",averaging);
     #endif
     // determine command code
     switch(tempComp) {
         case SDP800_TEMPCOMP_MASS_FLOW:
         #ifdef DEBUG
-        printf("SDP800_TEMPCOMP_MASS_FLOW\n");
+            printf("SDP800_TEMPCOMP_MASS_FLOW\n");
         #endif
             switch(averaging){
                 case SDP800_AVERAGING_TILL_READ:
                     #ifdef DEBUG
-                    printf("SDP800_AVERAGING_TILL_READ\n");
+                        printf("SDP800_AVERAGING_TILL_READ\n");
                     #endif
                     command = COMMAND_START_MEASURMENT_MF_AVERAGE;
                     break;
         
                 case SDP800_AVERAGING_NONE:
                     #ifdef DEBUG
-                    printf("SDP800_AVERAGING_NONE\n");
+                        printf("SDP800_AVERAGING_NONE\n");
                     #endif
                     command = COMMAND_START_MEASURMENT_MF_NONE;
                     break;
@@ -96,19 +112,19 @@ esp_err_t xSdp810_StartContinousMeasurement(Sdp800TempComp tempComp,
     
         case SDP800_TEMPCOMP_DIFFERNTIAL_PRESSURE:
         #ifdef DEBUG
-        printf("SDP800_TEMPCOMP_DIFFERNTIAL_PRESSURE\n");
+            printf("SDP800_TEMPCOMP_DIFFERNTIAL_PRESSURE\n");
         #endif
             switch(averaging) {
                 case SDP800_AVERAGING_TILL_READ:
                     #ifdef DEBUG
-                    printf("SDP800_AVERAGING_TILL_READ\n");
+                        printf("SDP800_AVERAGING_TILL_READ\n");
                     #endif
                     command = COMMAND_START_MEASURMENT_DP_AVERAGE;
                     break;
         
                 case SDP800_AVERAGING_NONE:
                     #ifdef DEBUG
-                    printf("SDP800_AVERAGING_NONE\n");
+                        printf("SDP800_AVERAGING_NONE\n");
                     #endif
                     command = COMMAND_START_MEASURMENT_DP_NONE;
                     break;
@@ -118,9 +134,13 @@ esp_err_t xSdp810_StartContinousMeasurement(Sdp800TempComp tempComp,
   
     if(COMMAND_UNDEFINED != command) {
         #ifdef DEBUG
-        printf("execute command: %04x\n",command);
+            printf("execute command: %04x\n",command);
         #endif
-        ret = xExecuteCommand(command);
+        sdp810Buf[0] = command >> 8;
+        sdp810Buf[1] = command & 0xFF;
+        ret = i2c_master_transmit(sdp810_conf.handle, 
+                              sdp810_conf.buff,2, -1);
+        //ret = xExecuteCommand(command);
     } else {
         ret = ESP_ERR_INVALID_ARG;
     }
@@ -128,9 +148,9 @@ esp_err_t xSdp810_StartContinousMeasurement(Sdp800TempComp tempComp,
     return ret;
 }
 
-
-
-
+/**
+ * @brief Reads the measurment result from the continous measurment.
+ */
 esp_err_t xSdp810_ReadMeasurementResults(float *diffPressure, float *temperature){
 
     esp_err_t ret;
@@ -140,15 +160,18 @@ esp_err_t xSdp810_ReadMeasurementResults(float *diffPressure, float *temperature
     
     ret = xReadMeasurementRawResults(&diffPressureTicks, &temperatureTicks,
                                     &scaleFactorDiffPressure);
+    #ifdef DEBUG
+        printf("diffPressureTicks: %d\n",diffPressureTicks);
+        printf("temperatureTicks: %d\n",temperatureTicks);
+        printf("scaleFactorDiffPressure: %d\n",scaleFactorDiffPressure);
+    #endif
     
     if (ret == ESP_OK){
         *diffPressure = (float)diffPressureTicks / (float)scaleFactorDiffPressure;
         *temperature = (float)temperatureTicks / scaleFactorTemperature;
     }
-    //flow = PI*(0.027*0.027)*sqrt(2*9.81*(*diffPressure)/1.2);
     return ret;
 }
-
 
 /**
  * @brief Read the raw measurement results from the sensor.
@@ -186,18 +209,6 @@ esp_err_t xReadMeasurementRawResults(int16_t *diffPressureTicks,
 }
 
 /**
- * local function to execute a command
- */
-esp_err_t xExecuteCommand(Command cmd){
-    esp_err_t ret;
-    sdp810Buf[0] = cmd >> 8;
-    sdp810Buf[1] = cmd & 0xFF;
-    ret = i2c_master_transmit(sdp810_conf.handle, 
-                              sdp810Buf,3, 1);
-    return ret;
-}
-
-/**
  * @brief Read a word from the sensor and check the CRC.
  */
 esp_err_t xCheckCrc(uint8_t *data, uint8_t size, uint8_t checksum){
@@ -216,40 +227,3 @@ esp_err_t xCheckCrc(uint8_t *data, uint8_t size, uint8_t checksum){
 
 //27mm
 //12mm
-
-/*esp_err_t xSdp810SoftReset(void)
-{
-  esp_err_t ret = ESP_OK;
-  
-  // write a start condition
-  I2c_StartCondition();
-
-  // write the upper 8 bits of reset
-  error = I2c_WriteByte(0x00);
-  
-  // write the lower 8 bits of reset
-  if(ERROR_NONE == error) {
-    error = I2c_WriteByte(0x06);
-  }
-  
-  I2c_StopCondition();
-
-  // wait 20 ms
-  DelayMicroSeconds(20000); 
-
-  return ret;
-}
-*/
-
-
-
-// reset the sensor
-/*
-    Sdp800_SoftReset();
-
-    error = Sdp800_StartContinousMeasurement(SDP800_TEMPCOMP_MASS_FLOW,
-                                             SDP800_AVERAGING_TILL_READ);
-
-    error = Sdp800_ReadMeasurementResults(&diffPressure, &temperature);
-    if(error != ERROR_NONE) break;
-    */

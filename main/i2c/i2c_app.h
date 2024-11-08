@@ -10,6 +10,7 @@ extern time_t init_time;
 struct Datos_I2c{
     float presion;
     float flujo;
+    float tempFlujo;
 };
 
 

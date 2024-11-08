@@ -17,6 +17,7 @@ struct Datos_usd{
     uint8_t bldc;
     float presion;
     float flujo;
+    float tempflujo;
 };
 
 void sd_App(void *pvParameters);

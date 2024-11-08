@@ -18,28 +18,36 @@ uint16_t bldc_sp = 100;
 uint8_t flag_bldc = 0;
 uint8_t spbldctemp = 0;
 
+/**
+ * temporal para enviar a la pantalla
+ */
+uint8_t cnt=10;
+
 //TaskHandle_t bldcTaskHandle = NULL; // Identificador para la tarea i2c_app
 void app_main(void)
 {
     
     struct Datos_usd datos_usd;
-    struct uartDataIn uatdatain;
+ 
 
     datos_usd.bldc = 0;
-    {
-        /* data */
-    };
-    
+
 
     //creamos cola para envio a la sd
     sd_App_queue = xQueueCreate(10, sizeof(struct Datos_usd));
     i2c_App_queue = xQueueCreate(10, sizeof(struct Datos_I2c));
     bldc_App_queue = xQueueCreate(10, sizeof(uint16_t));
-    uart_app_queue = xQueueCreate(10, sizeof(uatdatain));
+    uart_app_queue = xQueueCreate(10, sizeof(struct uartDataIn));
+    uart_app_queue_rx = xQueueCreate(10, sizeof(struct ToUartData ));
    
+    //dato para bldc en 0
+    bldc_sp = 0xFFFE;
+    xQueueSend(bldc_App_queue, &bldc_sp, 0);
+    
+    
     //cramos tareas
     xTaskCreate(i2c_app, "i2c_app", 4096, NULL, 10, NULL);
-    //xTaskCreate(bldc_servo_app, "bldc_servo_app", 4096, NULL, 10, &bldcTaskHandle);
+    xTaskCreate(bldc_servo_app, "bldc_servo_app", 4096, NULL, 10, NULL);
     //xTaskCreate(sd_App, "sd_App", 4096, (void *)&init_time, 10, NULL);
     xTaskCreate(uart_app, "uart_app", 4096, NULL, 10, NULL);
     
@@ -56,7 +64,21 @@ void app_main(void)
             datos_usd.timestamp = esp_log_timestamp() + init_time;
             datos_usd.presion = datos_i2c.presion;
             datos_usd.flujo = datos_i2c.flujo;
+                printf("presion %0.2f\n",datos_i2c.presion);
+
+                /**
+                 *esto es temporal   
+                 */
+                if(!cnt--){
+                    struct ToUartData touartdata;
+                    cnt=10;
+                    touartdata.command = UPresion;
+                    touartdata.value = (int8_t)datos_i2c.presion;
+                    xQueueSend(uart_app_queue_rx, &touartdata,0);
+                }
+            datos_usd.tempflujo = datos_i2c.tempFlujo;
             xQueueSend(sd_App_queue, &datos_usd, 0);
+
         }
 
         while(uxQueueMessagesWaiting(uart_app_queue) > 0){
@@ -92,11 +114,11 @@ void app_main(void)
                     xQueueReset(bldc_App_queue);
                     xQueueSend(bldc_App_queue, &bldc_sp, 0);
                     datos_usd.bldc = spbldctemp;
-                    xTaskCreate(bldc_servo_app, "bldc_servo_app", 4096, NULL, 10, NULL);
+                    //xTaskCreate(bldc_servo_app, "bldc_servo_app", 4096, NULL, 10, NULL);
                 }else if(datos.value==0){
                    
                     flag_bldc = 0;
-                    //vTaskDelete(bldcTaskHandle);
+                    
                     bldc_sp = 0xFFFE;
                     xQueueSend(bldc_App_queue, &bldc_sp, 0);
                     datos_usd.bldc = 0;
@@ -108,11 +130,7 @@ void app_main(void)
                 break;
             }
             
-            
-
- 
-
-            
+                       
             
         }
         vTaskDelay(1);

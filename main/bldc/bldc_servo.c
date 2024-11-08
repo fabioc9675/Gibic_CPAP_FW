@@ -96,9 +96,6 @@ void bldc_servo_app(void *pvParameters)
             //ESP_LOGI("main", "Received bldc value %d", bldc);
             if(bldc == 0xFFFE){
                 mcpwm_comparator_set_compare_value(comparator, 0);
-                //@todo:apagar el timer antes de matar la tarea
-
-                vTaskDelete(NULL);
             }else{
                 mcpwm_comparator_set_compare_value(comparator, bldc);
             }

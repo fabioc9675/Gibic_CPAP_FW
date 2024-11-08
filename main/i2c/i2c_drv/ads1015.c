@@ -16,7 +16,8 @@ i2c_adc1015_config_t adc1015_conf = {
 esp_err_t i2c_adc1015_init(){
     uint8_t adctemp[3];
     esp_err_t ret;
-    ret = i2c_master_bus_add_device(I2C1_bus_handle, &adc1015_conf.conf, &adc1015_conf.handle);
+    ret = i2c_master_bus_add_device(I2C1_bus_handle, &adc1015_conf.conf, 
+                                    &adc1015_conf.handle);
     //ESP_LOGI(TAG, "init adc1015_conf %s", ret == ESP_OK ? "success" : "failed");
     /*  
      * b11-b9 = 001   ±4.096V range

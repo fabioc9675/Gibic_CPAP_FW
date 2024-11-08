@@ -21,27 +21,14 @@ esp_err_t I2C1_init(void)
 {
     esp_err_t ret;
     ret = i2c_new_master_bus(&i2c1_bus_conf, &I2C1_bus_handle);
-    //ESP_LOGI(TAG, "init i2c %s", ret == ESP_OK ? "success" : "failed");
+    #ifdef DEBUG
+        ESP_LOGI(TAG, "init i2c %s", ret == ESP_OK ? "success" : "failed");
+    #endif
     return ret;
 }
 
+// var maquina estados
 i2c_stetes_t i2c_state = st_init;
-
-/*
- *todo: segmentar la aplicacion en drivers para
-    * cada dispositivo i2c
- 
- *todo: maquina de estados
-    * 1. Init I2C1
-    * 2. Init DS1338
-    * 3. Init ADC1015
-    * 4. Read DS1338
-    * 5. Read ADC1015
-    * 6. Print data
-    * 7. Loop 
-    * 8. delay to 50ms
-    * 9. goto 4
- */
 
 uint16_t adc=0;
 float offsetPresion = 0;
@@ -60,6 +47,14 @@ void i2c_app(void *pvParameters)
     (void)i2c_ds1338_init();
     (void)i2c_ds1338_read(&init_time);
 
+    //init sdp810
+    if(ESP_OK !=xSdp810Init())
+    {
+        #ifdef DEBUG
+            printf("error en sdp810\n");
+        #endif
+    };
+    
     //init adc
     (void)i2c_adc1015_init();
 
@@ -67,39 +62,36 @@ void i2c_app(void *pvParameters)
     (void)i2c_adc1015_get_ch(3, &adc);
     ret = i2c_adc1015_read_ch(&adc);
     while (ret != ESP_OK) {
-        ret = i2c_adc1015_read_ch(&adc);    
+       ret = i2c_adc1015_read_ch(&adc);    
     }
     offsetPresion = (float)(((adc)/(0.2*3000))-1);
 
-    if(ESP_OK !=xSdp810Init()){
-        printf("error en sdp810\n");
-    };
     if(ESP_OK !=xSdp810_StartContinousMeasurement(SDP800_TEMPCOMP_MASS_FLOW, SDP800_AVERAGING_TILL_READ)){
-        printf("error 2 en sdp810\n");
+        #ifdef DEBUG
+        printf("error start continuos sdp810\n");
+        #endif
     };
     
     for(;;) 
     {
-
         switch (i2c_state)
         {
-
             case st_init:
                 i2c_state = st_reqAdc0;
                 break;
 
-
-                
             case st_reqAdc0: //request presion
                 (void)i2c_adc1015_get_ch(3, &adc);
                 i2c_state = st_rsdp810;
-                /* code */
                 break;
 
             case st_rsdp810: //read sdp810
-                //(void)xSdp810_ReadMeasurementResults(&sdppresiondiff, &sdptemperatura);
+                (void)xSdp810_ReadMeasurementResults(&sdppresiondiff, &sdptemperatura);
                 datos.flujo = sdppresiondiff;
-                printf("presion: %f\n", sdppresiondiff);
+                #ifdef DEBUG
+                    printf("presion: %0.2f\n", sdppresiondiff);
+                    printf("sdptemperatura: %0.2f\n", sdptemperatura);
+                #endif
                 i2c_state = st_rAdc0;
                 break;
 
@@ -107,7 +99,9 @@ void i2c_app(void *pvParameters)
                 ret = i2c_adc1015_read_ch(&adc);
                 while (ret != ESP_OK) {
                     ret = i2c_adc1015_read_ch(&adc); 
-                    printf("esperando conversion adc\n");   
+                    #ifdef DEBUG
+                        printf("esperando conversion adc\n");   
+                    #endif
                 }
                 i2c_state = st_iddle;
                 break;   
@@ -117,6 +111,7 @@ void i2c_app(void *pvParameters)
                 datos.presion -= offsetPresion;
                 datos.presion *= 10;
                 datos.flujo = sdppresiondiff;
+                datos.tempFlujo = sdptemperatura;
                 xQueueSend(i2c_App_queue, &datos, 0);
                 vTaskDelay(50 / portTICK_PERIOD_MS);
                 i2c_state = st_reqAdc0;
