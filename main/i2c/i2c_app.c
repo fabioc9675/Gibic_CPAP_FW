@@ -87,7 +87,10 @@ void i2c_app(void *pvParameters)
 
             case st_rsdp810: //read sdp810
                 (void)xSdp810_ReadMeasurementResults(&sdppresiondiff, &sdptemperatura);
-                datos.flujo = sdppresiondiff;
+                //datos.flujo = sdppresiondiff;
+                // de acuerdo a la caracterizacion de la sdp810
+                // que el flujo es -0.02*x*x + 1.85*x 1.83
+                datos.flujo = -0.02*sdppresiondiff*sdppresiondiff + 1.85*sdppresiondiff - 1.83;
                 #ifdef DEBUG
                     printf("presion: %0.2f\n", sdppresiondiff);
                     printf("sdptemperatura: %0.2f\n", sdptemperatura);

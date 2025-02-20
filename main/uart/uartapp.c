@@ -17,8 +17,6 @@ static const char *TAG = "uart_events";
 static QueueHandle_t uart1_queue;
 QueueHandle_t uart_app_queue = NULL;
 QueueHandle_t uart_app_queue_rx = NULL;
-uint8_t flag = 0;
-
 
 uint8_t dataToWrite[8] = {0x5A, 0XA5, 0X05, 0X82, 0x00, 0x00, 0x00, 0x00}; // Secuencia a escribir los 4 ultimos se llenan de acuerdo al registro y valor a escribir
 
@@ -55,12 +53,10 @@ void uart_app(void *pvParameters)
     esp_log_level_set(TAG, ESP_LOG_INFO);
 
     // Ejemplo de configuracion inicial para los valores, inicializar donde corresponda y comentar aca
-    brillo = 5;
+    brillo = 50;
     presion = 7;
     tiempo = 15;
     humedad = 4;
-    ESP_LOGI(TAG, "Serial iniciado!");
-    //initScreen();
 
     for (;;)
     {
@@ -69,13 +65,14 @@ void uart_app(void *pvParameters)
 
         while(uxQueueMessagesWaiting(uart_app_queue_rx)>0){
             struct ToUartData touartdata;
-            flag = 1; //no enviar datos de lectura
             xQueueReceive(uart_app_queue_rx, &touartdata, 0);
             switch (touartdata.command)
             {
             case UPresion:
-                writeDWIN(PRESION_ACT,touartdata.value);
-                
+                if(touartdata.value!=presionAct){
+                    writeDWIN(PRESION_ACT,touartdata.value);
+                    presionAct=touartdata.value;
+                }
                 break;
             
             case SPage:
@@ -86,7 +83,6 @@ void uart_app(void *pvParameters)
             }
         }
 
-        vTaskDelay(5);
     }
 }
 
@@ -95,31 +91,19 @@ void checkSerialDwin()
 {
 
     int len = 0;
-    uint8_t inByte;
 
     uart_get_buffered_data_len(uart_num, (size_t *)&len);
     if (len > 0)
     {
-
-        uart_read_bytes(uart_num, &inByte, 1, 1);
-        saveData(inByte);
+        uart_read_bytes(uart_num, buffer, len, 1);
+        saveData();
     }
-
+    vTaskDelay(5);
 }
 
 // Metodo para almacenar y procesar la secuencia recibida
-void saveData(uint8_t inByte)
+void saveData()
 {
-    struct uartDataIn datos;
-    // Desplazar los elementos del buffer hacia la izquierda
-    for (int i = 0; i < seqLength - 1; i++)
-    {
-        buffer[i] = buffer[i + 1];
-    }
-
-    // Añadir el nuevo byte al final del buffer
-    buffer[seqLength - 1] = inByte;
-
     // Comprobar si el buffer coincide con el encabezado
     if (buffer[0] == header[0] && buffer[1] == header[1])
     {
@@ -127,20 +111,8 @@ void saveData(uint8_t inByte)
         if (checkSequence())
         {
             //ESP_LOGI(TAG, "Comunicacion confirmada!");
-            ESP_LOGI(TAG, "Brillo: %d, presion: %d, tiempo: %d, humedad: %d, fugas: %d, running: %d", brillo, presion, tiempo, humedad, fugas, running);
-            if(flag){
-                flag = 0;
-            }
-            else{
-                datos.command = 'P';
-                datos.value = presion;
-                xQueueSend(uart_app_queue, &datos, 0);
-
-                datos.command = 'S';
-                datos.value = running;
-                xQueueSend(uart_app_queue, &datos, 0);
-            }
-
+            ESP_LOGI(TAG, "Brillo: %d, presion: %d, presionAct: %d,tiempo: %d, humedad: %d, fugas: %d, running: %d", brillo, presion, presionAct, tiempo, humedad, fugas, running);
+                
         }
     }
 }
@@ -150,6 +122,7 @@ void saveData(uint8_t inByte)
 // escritura con informacion de un registro
 bool checkSequence()
 {
+    struct uartDataIn datos;//Almamcena los datos a poner en la cola de salida en caso de recibir de la pantalla
     ESP_LOGI(TAG, "Secuencia recibida: %02x", buffer[3]);
     if (buffer[3] == 0x82)
     { // Secuencia despues de escribir
@@ -174,6 +147,8 @@ bool checkSequence()
             break;
         case PRESION_REG:
             presion = value;
+            datos.command = 'P';
+            datos.value = presion;
             break;
         case TIEMPO_REG:
             tiempo = value;
@@ -186,14 +161,42 @@ bool checkSequence()
             break;
         case RUNNING:
             running = value;
+            datos.command = 'S';
+            datos.value = running;
+            break;
+        case INIT_REG:
+            if (value==1){
+                initScreen();
+            }
             break;
         default:
             break;
         }
+
+        xQueueSend(uart_app_queue, &datos, 0);//Coloca el dato leido en la cola
         return true;
     }
     return false;
 }
+
+
+/**
+ * @brief Cambia la pantalla actual de la pantalla DWIN
+ * 
+ * Este metodo escribe en el registro que controla la pantalla que se visualiza.
+ * Basicamente hace lo mismo que el writeDWIN solo que requiere escribir dos
+ * byte fijos mas y siempre en el mismo registro, razon por la cual lo puse independinte.
+ *
+ * @param page Pagina a la que se desea cambiar.
+ */
+void changeToPage(uint8_t page){
+  uint8_t dataToSend[10] = {0x5A,0XA5,0X07,0X82,0x00,0x84,0x5A,0x01,0x00,0x00};//Secuencia a escribir el ultimo se llena con la pagina 
+  dataToSend[9] = page;//Pagina a la que se pasara
+  //Envia por el serial conectado a la pantalla
+  uart_write_bytes(uart_num, (const char *)dataToSend, sizeof(dataToSend));
+  seqLength=ACK_LENGTH;//Esperara la secuencia de confirmacion de escritura
+}
+
 
 /**
  * @brief Escribe en uno de los registros de la pantalla DWIN

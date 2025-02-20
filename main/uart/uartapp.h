@@ -49,6 +49,7 @@ struct ToUartData{
 #define TIEMPO_REG 0x1004
 #define HUMEDAD_REG 0x1006
 
+#define INIT_REG 0x1000
 #define FUGAS_REG 0x1001
 #define RUNNING 0x1005
 
@@ -64,7 +65,7 @@ struct ToUartData{
 void uart_app(void *pvParameters);
 
 void checkSerialDwin();
-void saveData(uint8_t inByte);
+void saveData();
 bool checkSequence();
 bool writeDWIN(unsigned int reg, uint8_t value);
 void initScreen();

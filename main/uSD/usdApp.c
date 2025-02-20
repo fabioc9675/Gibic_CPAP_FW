@@ -11,6 +11,8 @@ void sd_App(void *pvParameters){
     
     init_sdmmc();
 
+    //name of file
+    //esto se movera al proceso de la cola
     struct tm *tm_info = localtime(&time);
     strftime(&file_log[4], 9, "%Y%m%d", tm_info);
     file_log[0] = '/';
@@ -63,7 +65,8 @@ void sd_App(void *pvParameters){
                 // Escribe datos en el archivo
                 fprintf(f, bufferSd);
                 // Cierra el archivo
-                ESP_LOGI("SD_APP", "%s", bufferSd);  
+                //ESP_LOGI("SD_APP", "%s", bufferSd);
+                //printf("%s", bufferSd);  
                 fclose(f);
                 
         }
